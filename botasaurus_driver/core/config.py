@@ -61,7 +61,15 @@ def clean_profile(profile):
 
 
 
-def should_force_no_sandbox():
+def should_force_no_sandbox(config=None):
+    """
+    Determine if --no-sandbox should be added.
+    
+    If config has force_no_sandbox set, use that value.
+    Otherwise, fall back to Docker detection.
+    """
+    if config and config.force_no_sandbox is not None:
+        return config.force_no_sandbox
     return is_docker
 
 
@@ -150,6 +158,7 @@ class Config:
         beep=False,
         host="127.0.0.1", 
         port=None,
+        force_no_sandbox=None,
         browser_executable_path=None
     ):
         if tiny_profile and profile is None:
@@ -184,6 +193,9 @@ class Config:
 
         self.lang = lang
         self.beep = beep
+
+        # Force no-sandbox flag
+        self.force_no_sandbox = force_no_sandbox
 
         # Customizable host and port
         self.host = host
@@ -266,7 +278,7 @@ class Config:
                     )
                     args.append("--headless=new")
 
-        if should_force_no_sandbox():
+        if should_force_no_sandbox(self):
             args.append("--no-sandbox")
 
         if self.host:

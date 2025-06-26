@@ -2079,6 +2079,7 @@ class Driver(BrowserTab):
         beep=False,
         host=None,
         port=None,
+        force_no_sandbox=None,
         browser_executable_path=None
     ):
         self.config = Config(
@@ -2099,6 +2100,7 @@ class Driver(BrowserTab):
             beep=beep,
             host=host,
             port=port,
+            force_no_sandbox=force_no_sandbox,
             browser_executable_path=browser_executable_path
         )
 
