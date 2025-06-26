@@ -653,8 +653,7 @@ class Tab(Connection):
                     _node.is_last =  True  # make sure this isn't turned into infinite loop
                     return self.query_selector_all(selector, _node)
             else:
-                # TODO: Why, i guess removable maybe
-                self.send(cdp.dom.disable())
+                # DOM disable removed - now handled manually
                 if is_no_node:
                     # simply means that doc was destroyed in navigation
                     return []
@@ -718,8 +717,7 @@ class Tab(Connection):
                     _node.is_last =  True  # make sure this isn't turned into infinite loop
                     return self.query_selector_count(selector, _node)
             else:
-                # TODO: Why, i guess removable maybe
-                self.send(cdp.dom.disable())
+                # DOM disable removed - now handled manually
                 if is_no_node:
                     # simply means that doc was destroyed in navigation
                     return 0  # Return 0 instead of an empty list
@@ -769,7 +767,7 @@ class Tab(Connection):
                     _node.is_last =  True  # make sure this isn't turned into infinite loop
                     return self.query_selector(selector, _node)
             else:
-                self.send(cdp.dom.disable())
+                # DOM disable removed - now handled manually
                 if is_no_node:
                     # simply means that doc was destroyed in navigation
                     return []
@@ -832,10 +830,10 @@ class Tab(Connection):
                 continue
             self.checktextnodeandappend(type, results, elem, text, exact_match)   
             if results:
-                self.send(cdp.dom.disable())
+                # DOM disable removed - now handled manually
                 return results[0]
         
-        self.send(cdp.dom.disable())
+        # DOM disable removed - now handled manually
         return None  # Fix: Return None if no results are found
 
     def find_elements_by_text(
@@ -884,7 +882,7 @@ class Tab(Connection):
                 continue
             self.checktextnodeandappend(type, results, elem, text, exact_match)  
 
-        self.send(cdp.dom.disable())
+        # DOM disable removed - now handled manually
         return results  # Fix: Return results directly
     
     def _find_text_nodes_in_iframe(self, text, iframe_elem, type, exact_match, single_result=False):
@@ -903,10 +901,10 @@ class Tab(Connection):
                     elem = element.create(text_node, self, iframe_elem.tree)
                     self.checktextnodeandappend(type, results, elem, text, exact_match)
                     if single_result and results:
-                        self.send(cdp.dom.disable())
+                        # DOM disable removed - now handled manually
                         return results[0]  # Return first match immediately if requested
 
-        self.send(cdp.dom.disable())
+        # DOM disable removed - now handled manually
         return results if not single_result else None
 
     def find_elements_by_text_iframe(
@@ -1806,6 +1804,23 @@ if (resp instanceof Promise) {
     #         raise AttributeError(
     #             f'"{self.__class__.__name__}" has no attribute "%s"' % item
     #         )
+    
+    def dom_enable(self):
+        """Explicitly enable DOM tracking."""
+        try:
+            self.send(cdp.dom.enable())
+            return True
+        except Exception as e:
+            return False
+
+    def dom_disable(self):
+        """Explicitly disable DOM tracking to free memory."""
+        try:
+            self.send(cdp.dom.disable())
+            return True
+        except Exception as e:
+            return False
+    
     def __repr__(self):
         if self.target.url:
             extra = f"[url: {self.target.url}]"

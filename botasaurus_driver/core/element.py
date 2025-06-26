@@ -1034,7 +1034,6 @@ class Element:
         if getattr(self, "_is_highlighted", False):
             del self._is_highlighted
             self.tab.send(cdp.overlay.hide_highlight())
-            self.tab.send(cdp.dom.disable())
             self.tab.send(cdp.overlay.disable())
             return
         self.tab.send(cdp.dom.enable())

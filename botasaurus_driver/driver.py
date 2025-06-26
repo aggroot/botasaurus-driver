@@ -2347,6 +2347,13 @@ class Driver(BrowserTab):
     def allow_insecure_connections(self) -> None:
         self._tab.bypass_insecure_connection_warning()
 
+    def dom_enable(self) -> bool:
+        """Explicitly enable DOM tracking."""
+        return self._tab.dom_enable()
+
+    def dom_disable(self) -> bool:
+        """Explicitly disable DOM tracking to free memory."""
+        return self._tab.dom_disable()
 
     def close(self) -> None:
         if self.config.tiny_profile:

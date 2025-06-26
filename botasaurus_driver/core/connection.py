@@ -56,23 +56,17 @@ def parse_response(response, cdp_obj):
             return e.value
         raise ChromeException("could not parse the cdp response:\n%s" % response)
 
-def wait_till_response_arrives(q: Queue, response_id, timeout):
-            start_time = time.time()
-
-            while True:
-                try:
-                    message = q.get(timeout=timeout)
-                    if message['id'] == response_id:
-                        return message
-                except Empty:
-                    raise TimeoutError("Response not received")
-
-                # If the timeout has been exceeded, raise an exception
-                if time.time() - start_time > timeout:
-                    raise TimeoutError("Response not received")
-
-                # # Wait for a short period before checking again
-                # time.sleep(0.1)
+def wait_till_response_arrives(response_queue: Queue, response_id, timeout):
+    """Wait for a response on a dedicated queue.
+    
+    With per-request queues, we know the message in the queue is for us,
+    so we don't need to check the ID or loop.
+    """
+    try:
+        message = response_queue.get(timeout=timeout)
+        return message
+    except Empty:
+        raise TimeoutError(f"Response {response_id} not received within {timeout} seconds")
 
 class Connection:
     attached: bool = None
@@ -90,6 +84,11 @@ class Connection:
         self.__count__ = itertools.count(0)
         self._owner = _owner
         self.queue = Queue()
+        
+        # Per-request queue management for concurrent operations
+        self.response_queues = {}  # {request_id: Queue}
+        self.queue_lock = threading.Lock()  # Protect dictionary access
+        
         self.websocket_url: str = websocket_url
         self.websocket = None
         self.handlers = collections.defaultdict(list)
@@ -297,20 +296,36 @@ class Connection:
         tx  = make_request_body(id=tx_id, cdp_obj = cdp_obj)
         if not _is_update:
             self._register_handlers()
+        
+        # Create a dedicated queue for this request
+        if wait_for_response:
+            response_queue = Queue()
+            with self.queue_lock:
+                self.response_queues[tx_id] = response_queue
+        
         try:
           self.websocket.send(tx)
 
         # except (exceptions.ConnectionClosed,exceptions.ConnectionClosedError, ConnectionResetError):
         except Exception as e:
         #   print('faced websocket send exception', e)
+          # Clean up on send failure
+          if wait_for_response:
+              with self.queue_lock:
+                  self.response_queues.pop(tx_id, None)
           raise           
         
         if wait_for_response:
             MAX_WAIT = 200
-            result = wait_till_response_arrives(self.queue, tx_id , MAX_WAIT)
-            result = parse_response(result, cdp_obj)
-
-            return result
+            try:
+                # Wait on our dedicated queue
+                result = wait_till_response_arrives(response_queue, tx_id, MAX_WAIT)
+                result = parse_response(result, cdp_obj)
+                return result
+            finally:
+                # Always clean up the queue
+                with self.queue_lock:
+                    self.response_queues.pop(tx_id, None)
     def _register_handlers(self):
         """
         ensure that for current (event) handlers, the corresponding
@@ -407,8 +422,19 @@ class Listener:
     def handle_message(self, message):
                 message = json.loads(message)
                 if "id" in message:
-                    # pass
-                    self.connection.queue.put(message)
+                    msg_id = message["id"]
+                    
+                    # Route to the correct queue
+                    delivered = False
+                    with self.connection.queue_lock:
+                        if msg_id in self.connection.response_queues:
+                            self.connection.response_queues[msg_id].put(message)
+                            delivered = True
+                    
+                    # Fallback: put in general queue if no specific queue exists
+                    # (for backward compatibility or late responses)
+                    if not delivered:
+                        self.connection.queue.put(message)
                 else:
                     try:
                         event = cdp.util.parse_json_event(message)
