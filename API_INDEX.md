@@ -1,8 +1,9 @@
 # Botasaurus Driver API Index
 
-This document provides a comprehensive index of the public API exposed by the Botasaurus Driver library through its `__init__.py` file. This serves as a reference for implementing the Botasaurus adapter in Bitapify.
+This document provides a comprehensive index of the public API exposed by the Botasaurus Driver library. This serves as a reference for implementing the Botasaurus adapter in Bitapify.
 
-**Note**: This index only includes what is publicly exported via `botasaurus_driver.__init__.py`. Internal classes and methods not exposed in the public API are excluded.
+**Last Updated**: Based on actual implementation in driver.py
+**Note**: This index includes public methods (not prefixed with `_`) from the Driver and Element classes.
 
 ## Table of Contents
 - [Core Classes](#core-classes)
@@ -10,12 +11,7 @@ This document provides a comprehensive index of the public API exposed by the Bo
   - [Element Class](#element-class)
 - [Constants](#constants)
   - [Wait Constants](#wait-constants)
-- [Special Elements](#special-elements)
-  - [BrowserTab](#browsertab)
-  - [IframeElement](#iframeelement)
-  - [IframeTab](#iframetab)
 - [Exceptions](#exceptions)
-- [CDP Module](#cdp-module)
 
 ## Core Classes
 
@@ -28,33 +24,27 @@ def __init__(self, **kwargs) -> None
 
 def close(self) -> None
     """Close the browser and clean up resources."""
-
-def quit(self) -> None
-    """Alias for close()"""
 ```
 
 #### Navigation
 ```python
-def get(self, url: str, wait: Optional[int] = None) -> Union[Response, None]
+def get(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, timeout=60) -> Tab
     """Navigate to URL and optionally wait for page load."""
 
-def google_get(self, url: str, wait: Optional[int] = None, accept_cookies: bool = True) -> Union[Response, None]
+def google_get(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, accept_google_cookies: bool = False, timeout=60) -> Tab
     """Navigate to URL via Google (for Cloudflare bypass)."""
 
-def bing_get(self, url: str, wait: Optional[int] = None) -> Union[Response, None]
-    """Navigate to URL via Bing."""
-
-def get_via(self, url: str, referer: str, wait: Optional[int] = None) -> Union[Response, None]
+def get_via(self, link: str, referer: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, timeout=60) -> Tab
     """Navigate to URL with custom referer."""
 
-def reload(self) -> None
+def get_via_this_page(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, timeout=60) -> Tab
+    """Navigate to URL from current page context."""
+
+def reload(self, js_to_run_before_new_document=None) -> Tab
     """Reload the current page."""
 
-def back(self) -> None
-    """Navigate back in browser history."""
-
-def forward(self) -> None
-    """Navigate forward in browser history."""
+def open_link_in_new_tab(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, timeout=60) -> Tab
+    """Open URL in a new tab."""
 ```
 
 #### Page Properties
@@ -64,7 +54,7 @@ def current_url(self) -> str
     """Get the current page URL."""
 
 @property
-def page_source(self) -> str
+def page_html(self) -> str
     """Get the page HTML source."""
 
 @property
@@ -85,48 +75,36 @@ def select_all(self, selector: str, wait: Optional[int] = Wait.SHORT) -> List[El
     """Select all elements by CSS selector."""
 
 def wait_for_element(self, selector: str, wait: Optional[int] = Wait.SHORT) -> Element
-    """Wait for element to appear and return it."""
+    """Wait for element to appear and return it (raises exception if not found)."""
 
 def is_element_present(self, selector: str, wait: Optional[int] = Wait.SHORT) -> bool
     """Check if element is present."""
 
-def get_element_with_exact_text(self, text: str, wait: Optional[int] = Wait.SHORT) -> Optional[Element]
+def get_element_with_exact_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> Optional[Element]
     """Get element with exact text match."""
 
-def get_element_containing_text(self, text: str, wait: Optional[int] = Wait.SHORT) -> Optional[Element]
+def get_element_containing_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> Optional[Element]
     """Get element containing text."""
 
-def get_elements_with_exact_text(self, text: str, wait: Optional[int] = Wait.SHORT) -> List[Element]
+def get_all_elements_with_exact_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> List[Element]
     """Get all elements with exact text."""
 
-def get_elements_containing_text(self, text: str, wait: Optional[int] = Wait.SHORT) -> List[Element]
+def get_all_elements_containing_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> List[Element]
     """Get all elements containing text."""
-
-def get_element_by_id(self, id: str, wait: Optional[int] = Wait.SHORT) -> Optional[Element]
-    """Get element by ID."""
-
-def get_element_or_create_by_id(self, id: str, wait: Optional[int] = Wait.SHORT) -> Element
-    """Get element by ID or create if not found."""
-
-def get_element_or_none_by_id(self, id: str, wait: Optional[int] = Wait.SHORT) -> Optional[Element]
-    """Get element by ID or None."""
-
-def get_element_parent_by_id(self, id: str, wait: Optional[int] = Wait.SHORT) -> Optional[Element]
-    """Get parent element of element with ID."""
 ```
 
 #### Element Interaction - Basic
 ```python
-def click(self, selector: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> None
+def click(self, selector: str, wait: Optional[int] = Wait.SHORT, skip_move: bool = False) -> None
     """Click element."""
 
-def scroll(self, selector: Optional[str] = None) -> None
-    """Scroll to element."""
+def scroll(self, selector: Optional[str] = None, by: int = 1000, smooth_scroll: bool = True) -> None
+    """Scroll to element or by amount."""
 
-def type(self, text: str, selector: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> None
+def type(self, selector: str, text: str, wait: Optional[int] = Wait.SHORT) -> None
     """Type text into element."""
 
-def clear(self, selector: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> None
+def clear(self, selector: str, wait: Optional[int] = Wait.SHORT) -> None
     """Clear input field."""
 ```
 
@@ -135,16 +113,16 @@ def clear(self, selector: Optional[str] = None, wait: Optional[int] = Wait.SHORT
 def get_input_by_label(self, label: str, wait: Optional[int] = Wait.SHORT) -> Optional[Element]
     """Get input element by label text."""
 
-def type_in_input_by_label(self, label: str, text: str, wait: Optional[int] = Wait.SHORT) -> None
+def type_by_label(self, label: str, text: str, wait: Optional[int] = Wait.SHORT) -> None
     """Type text in input found by label."""
 
-def select_option_by_label(self, label: str, value: Optional[str] = None, index: Optional[int] = None, text: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> None
-    """Select option in dropdown found by label."""
+def select_option(self, selector: str, value: Optional[Union[str, List[str]]] = None, index: Optional[Union[int, List[int]]] = None, label: Optional[Union[str, List[str]]] = None, wait: Optional[int] = Wait.SHORT) -> None
+    """Select option in dropdown."""
 
-def upload(self, selector: str, path: str, wait: Optional[int] = Wait.SHORT) -> None
+def upload_file(self, selector: str, file_path: str, wait: Optional[int] = Wait.SHORT) -> None
     """Upload file to file input."""
 
-def upload_multiple(self, selector: str, paths: List[str], wait: Optional[int] = Wait.SHORT) -> None
+def upload_multiple_files(self, selector: str, file_paths: List[str], wait: Optional[int] = Wait.SHORT) -> None
     """Upload multiple files."""
 ```
 
@@ -152,45 +130,24 @@ def upload_multiple(self, selector: str, paths: List[str], wait: Optional[int] =
 ```python
 def run_js(self, script: str, args: Optional[Any] = None) -> Any
     """Execute JavaScript and return result."""
-
-def execute_script(self, script: str, *args) -> Any
-    """Execute JavaScript with arguments."""
-
-def execute_file(self, filename: str) -> Any
-    """Execute JavaScript from file."""
-
-def add_script(self, script: str) -> None
-    """Add script to page."""
-
-def remove_data_disabled(self) -> None
-    """Remove data-disabled attributes."""
 ```
 
 #### Waiting & Conditions
 ```python
-def wait(self, seconds: float) -> None
-    """Wait for specified seconds."""
-
 def sleep(self, seconds: float) -> None
-    """Alias for wait()."""
+    """Wait for specified seconds."""
 
 def wait_for_page_to_be(self, expected_url: Union[str, List[str]], wait: Optional[int] = 8, raise_exception: bool = True) -> bool
     """Wait for page URL to match expected."""
 
 def prompt(self, text: str = "Press Enter to continue...") -> None
     """Show prompt and wait for user input."""
-
-def beep(self, frequency: int = 800, duration: int = 500) -> None
-    """Play beep sound."""
 ```
 
 #### Screenshots & Recording
 ```python
 def save_screenshot(self, filename: Optional[str] = None) -> str
     """Save screenshot to file."""
-
-def screenshot(self, filename: Optional[str] = None) -> str
-    """Alias for save_screenshot()."""
 
 def full_screenshot(self, filename: Optional[str] = None) -> str
     """Take full page screenshot."""
@@ -234,23 +191,11 @@ def links(self, search: Optional[str] = None) -> List[Link]
 
 #### Page Manipulation
 ```python
-def highlight(self, selector: str) -> None
-    """Highlight element with border."""
-
-def press(self, key: str) -> None
-    """Press keyboard key."""
-
-def write(self, text: str) -> None
-    """Write text at current cursor position."""
-
-def clear_cookies(self) -> None
+def delete_cookies(self) -> None
     """Clear all cookies."""
 
 def clear_localstorage(self) -> None
     """Clear local storage."""
-
-def delete_cookies(self) -> None
-    """Delete all cookies."""
 
 def get_cookies(self) -> List[dict]
     """Get all cookies."""
@@ -303,6 +248,15 @@ def block_images_and_css(self) -> None
 
 def calculate_loading_time(self) -> float
     """Get page loading time."""
+
+def detect_and_bypass_cloudflare(self) -> None
+    """Detect and bypass Cloudflare protection."""
+
+def enable_human_mode(self) -> None
+    """Enable human-like behavior mode."""
+
+def disable_human_mode(self) -> None
+    """Disable human-like behavior mode."""
 ```
 
 #### Scrolling
@@ -333,9 +287,21 @@ def get_driver_version(self) -> str
 
 def get_browser_version(self) -> str
     """Get Chrome browser version."""
+```
 
-def prompt(self, text: str = "Press Enter to continue...") -> None
-    """Show prompt and wait."""
+#### Network Interception
+```python
+def before_request_sent(self, callback: Callable) -> None
+    """Set callback for before request is sent."""
+
+def after_response_received(self, callback: Callable) -> None
+    """Set callback for after response is received."""
+```
+
+#### Downloads
+```python
+def download_file(self, url: str, filename: Optional[str] = None) -> None
+    """Download file from URL."""
 ```
 
 ### Element Class
@@ -423,9 +389,6 @@ def set_text(self, text: str) -> None
 ```python
 def get_attribute(self, attribute: str) -> str
     """Get attribute value."""
-
-def has_attribute(self, attribute: str) -> bool
-    """Check if has attribute."""
 ```
 
 #### Position & Movement
@@ -474,9 +437,6 @@ def drag_and_drop_to(self, to_point: Union[tuple[int, int], 'Element']) -> None
 ```python
 def save_screenshot(self, filename: Optional[str] = None) -> str
     """Save element screenshot."""
-
-def screenshot(self, filename: Optional[str] = None) -> str
-    """Alias for save_screenshot()."""
 ```
 
 #### Form Elements
@@ -487,23 +447,56 @@ def check_element(self, selector: Optional[str] = None, wait: Optional[int] = Wa
 def uncheck_element(self, selector: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> None
     """Uncheck checkbox."""
 
-def select_option(self, selector: str, value: Optional[Union[str, List[str]]] = None, index: Optional[Union[int, List[int]]] = None, label: Optional[Union[str, List[str]]] = None, wait: Optional[int] = Wait.SHORT) -> None
+def select_option(self, value: Optional[Union[str, List[str]]] = None, index: Optional[Union[int, List[int]]] = None, label: Optional[Union[str, List[str]]] = None, wait: Optional[int] = Wait.SHORT) -> None
     """Select dropdown option."""
 ```
 
-#### Utility Methods
+#### File Upload
 ```python
-def get_element_at_point(self, x: int, y: int, child_selector: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> Optional['Element']
-    """Get element at coordinates."""
+def upload_file(self, file_path: str) -> None
+    """Upload file to input element."""
 
-def get_parent_which_satisfies(self, predicate: Callable[['Element'], bool]) -> Optional['Element']
-    """Get parent matching condition."""
+def upload_multiple_files(self, file_paths: List[str]) -> None
+    """Upload multiple files."""
+```
 
-def get_parent_which_is(self, tag_name: str) -> Optional['Element']
-    """Get parent with tag name."""
+#### Iframe & Shadow DOM
+```python
+def select_iframe(self) -> 'IframeElement'
+    """Select iframe element."""
 
 def get_shadow_root(self, wait: Optional[int] = Wait.SHORT) -> 'ShadowRoot'
     """Get shadow root."""
+```
+
+#### Link & Image Methods
+```python
+def get_link(self, search: Optional[str] = None) -> Optional[Link]
+    """Get first link matching search."""
+
+def get_all_links(self, search: Optional[str] = None) -> List[Link]
+    """Get all links matching search."""
+
+def get_image_link(self, search: Optional[str] = None) -> Optional[str]
+    """Get first image link matching search."""
+
+def get_all_image_links(self, search: Optional[str] = None) -> List[str]
+    """Get all image links matching search."""
+```
+
+#### Text Search Methods (Element class)
+```python
+def get_element_with_exact_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> Optional['Element']
+    """Get child element with exact text."""
+
+def get_element_containing_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> Optional['Element']
+    """Get child element containing text."""
+
+def get_all_elements_with_exact_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> List['Element']
+    """Get all child elements with exact text."""
+
+def get_all_elements_containing_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> List['Element']
+    """Get all child elements containing text."""
 ```
 
 ## Constants
@@ -516,30 +509,6 @@ class Wait:
     LONG = 8       # 8 seconds  
     VERY_LONG = 16 # 16 seconds
 ```
-
-## Special Elements
-
-### BrowserTab
-Inherits from Driver with additional tab-specific properties:
-```python
-@property
-def id(self) -> str
-    """Tab ID."""
-
-@property
-def title(self) -> str
-    """Tab title."""
-
-@property
-def url(self) -> str
-    """Tab URL."""
-```
-
-### IframeElement
-Special element for iframe handling with methods to access iframe content.
-
-### IframeTab
-Tab-like interface for iframe content manipulation.
 
 ## Exceptions
 
@@ -617,22 +586,12 @@ class JavascriptRuntimeException(JavascriptException):
     """JavaScript runtime error."""
 ```
 
-## CDP Module
-
-The `cdp` module is also exported for direct Chrome DevTools Protocol access:
-
-```python
-from botasaurus_driver import cdp
-```
-
-This provides low-level access to Chrome DevTools Protocol for advanced use cases.
-
 ## Notes
 
 1. Most methods accept an optional `wait` parameter using the `Wait` constants
 2. Many methods have both synchronous behavior and optional async waiting
-3. Element selection methods return `None` if not found (unless using `wait_for_*` variants)
-4. The `@` decorators in the original code are NOT part of the public API - they're internal implementation details
-5. All Driver methods should be called on a Driver instance, not as decorators
-6. The Driver class manages its own Chrome subprocess via CDP (Chrome DevTools Protocol)
-7. Only the classes, methods, and exceptions listed in this document are part of the public API
+3. Element selection methods return `None` if not found (unless using `wait_for_*` variants which raise exceptions)
+4. All Driver methods should be called on a Driver instance
+5. The Driver class manages its own Chrome subprocess via CDP (Chrome DevTools Protocol)
+6. Methods not prefixed with `_` are considered public API
+7. Some methods have different signatures between Driver and Element classes (e.g., `type()` parameter order)
