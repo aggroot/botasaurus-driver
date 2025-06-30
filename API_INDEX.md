@@ -249,6 +249,7 @@ def block_images_and_css(self) -> None
 def calculate_loading_time(self) -> float
     """Get page loading time."""
 
+<<<<<<< Updated upstream
 def detect_and_bypass_cloudflare(self) -> None
     """Detect and bypass Cloudflare protection."""
 
@@ -257,6 +258,10 @@ def enable_human_mode(self) -> None
 
 def disable_human_mode(self) -> None
     """Disable human-like behavior mode."""
+=======
+def run_cdp_command(self, command: str) -> Any
+    """Execute a Chrome DevTools Protocol command directly."""
+>>>>>>> Stashed changes
 ```
 
 #### Scrolling
