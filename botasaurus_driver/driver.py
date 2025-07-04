@@ -2169,9 +2169,12 @@ class Driver(BrowserTab):
         else:
             raise InvalidProfileException()
         
-    def get(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None,  timeout=60) -> Tab:
+    def get(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None,  timeout=60, use_current_tab = True) -> Tab:
             self.run_on_new_document(js_to_run_before_new_document)
-            self._tab = self._browser.get(link, )
+            if use_current_tab:
+                self._tab = self._browser.get_with_tab(link, self._tab, )
+            else:
+                self._tab = self._browser.get(link, )
             self.sleep(wait)
             wait_till_document_is_ready(self._tab, self.config.wait_for_complete_page_load, timeout=timeout)
             if bypass_cloudflare:
@@ -2196,10 +2199,14 @@ class Driver(BrowserTab):
             js_to_run_before_new_document: str = None,
             wait: Optional[int] = None,
             timeout=60,
+            use_current_tab = True
         ) -> Tab:
             self.run_on_new_document(js_to_run_before_new_document)
             referer = referer.rstrip("/") + "/"
-            self._tab = self._browser.get(link, referrer=referer, )
+            if use_current_tab:
+                self._tab = self._browser.get_with_tab(link, self._tab, referrer=referer)
+            else:
+                self._tab = self._browser.get(link, referrer=referer)
             self.sleep(wait)
             wait_till_document_is_ready(self._tab, self.config.wait_for_complete_page_load, timeout=timeout)
 
@@ -2215,6 +2222,7 @@ class Driver(BrowserTab):
             wait: Optional[int] = None,
             accept_google_cookies: bool = False,
             timeout=60,
+            use_current_tab = True
         ) -> Tab:
             if accept_google_cookies:
                 # No need to accept cookies multiple times
@@ -2224,7 +2232,7 @@ class Driver(BrowserTab):
                 ):
                     pass
                 else:
-                    self.get("https://www.google.com/", js_to_run_before_new_document=js_to_run_before_new_document)
+                    self.get("https://www.google.com/", js_to_run_before_new_document=js_to_run_before_new_document, use_current_tab=use_current_tab)
                     if '/sorry/' in self.current_url:
                         print('Blocked by Google')
                     else:
@@ -2237,6 +2245,7 @@ class Driver(BrowserTab):
                 wait=wait,
                 js_to_run_before_new_document=js_to_run_before_new_document,
                 timeout=timeout,
+                use_current_tab=use_current_tab
             )
             return self._tab
 
@@ -2260,6 +2269,7 @@ class Driver(BrowserTab):
                 self.detect_and_bypass_cloudflare()
 
             return self._tab
+    
     def reload(self, js_to_run_before_new_document=None) -> Tab:
         self._tab.reload(script_to_evaluate_on_load=make_iife(load_script_if_js_file(js_to_run_before_new_document)))
         wait_till_document_is_ready(self._tab, self.config.wait_for_complete_page_load)

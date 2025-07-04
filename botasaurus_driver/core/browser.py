@@ -274,6 +274,7 @@ class Browser:
         new_tab: bool = False,
         new_window: bool = False,
         referrer=None,
+        tab: tab.Tab = None
     ) -> tab.Tab:
         """top level get. utilizes the first tab to retrieve given url.
 
@@ -311,9 +312,19 @@ class Browser:
             # update the frame_id on the tab
             connection.frame_id = frame_id
             connection.browser = self
-
+            
         time.sleep(0.25)
         return connection
+    
+    def get_with_tab(self, url="chrome://welcome", tab: tab.Tab = None, referrer = None):
+        if tab is None:
+            tab = self.get_first_tab()
+        frame_id, _, *_ = tab.send(cdp.page.navigate(url, referrer=referrer))
+            # update the frame_id on the tab
+        tab.frame_id = frame_id
+        tab.browser = self
+        time.sleep(0.25)
+        return tab
 
     def get_first_tab(self):
         return next(filter(lambda item: item._target.type_ == "page", self.targets))
