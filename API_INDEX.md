@@ -1,9 +1,11 @@
-# Botasaurus Driver API Index
+# Botasaurus Driver API Index (Updated)
 
 This document provides a comprehensive index of the public API exposed by the Botasaurus Driver library. This serves as a reference for implementing the Botasaurus adapter in Bitapify.
 
-**Last Updated**: Based on actual implementation in driver.py
-**Note**: This index includes public methods (not prefixed with `_`) from the Driver and Element classes.
+**Last Updated**: Based on actual implementation analysis
+**Note**: This index reflects the actual implementation with two Element classes:
+- CoreElement (in core/element.py) - Low-level implementation
+- Element wrapper (in driver.py) - High-level API used by consumers
 
 ## Table of Contents
 - [Core Classes](#core-classes)
@@ -16,6 +18,8 @@ This document provides a comprehensive index of the public API exposed by the Bo
 ## Core Classes
 
 ### Driver Class
+
+The Driver class inherits from BrowserTab and provides browser automation capabilities.
 
 #### Initialization & Lifecycle
 ```python
@@ -58,12 +62,24 @@ def page_html(self) -> str
     """Get the page HTML source."""
 
 @property
+def page_text(self) -> str
+    """Get the page text content."""
+
+@property
 def title(self) -> str
     """Get the page title."""
 
 @property
 def user_agent(self) -> str
     """Get the current user agent string."""
+
+@property
+def profile(self) -> Profile
+    """Get the browser profile."""
+
+@property
+def is_human_mode_enabled(self) -> bool
+    """Check if human mode is enabled."""
 ```
 
 #### Element Selection
@@ -91,12 +107,18 @@ def get_all_elements_with_exact_text(self, text: str, wait: Optional[int] = Wait
 
 def get_all_elements_containing_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> List[Element]
     """Get all elements containing text."""
+
+def count(self, selector: str, wait: Optional[int] = Wait.SHORT) -> int
+    """Count elements matching selector."""
 ```
 
-#### Element Interaction - Basic
+#### Element Interaction
 ```python
 def click(self, selector: str, wait: Optional[int] = Wait.SHORT, skip_move: bool = False) -> None
     """Click element."""
+
+def click_element_containing_text(self, text: str, wait: Optional[int] = Wait.SHORT, skip_move: bool = False) -> None
+    """Click element containing specific text."""
 
 def scroll(self, selector: Optional[str] = None, by: int = 1000, smooth_scroll: bool = True) -> None
     """Scroll to element or by amount."""
@@ -106,6 +128,15 @@ def type(self, selector: str, text: str, wait: Optional[int] = Wait.SHORT) -> No
 
 def clear(self, selector: str, wait: Optional[int] = Wait.SHORT) -> None
     """Clear input field."""
+
+def focus(self, selector: str, wait: Optional[int] = Wait.SHORT) -> None
+    """Focus element."""
+
+def set_value(self, selector: str, value: str, wait: Optional[int] = Wait.SHORT) -> None
+    """Set element value directly."""
+
+def set_text(self, selector: str, text: str, wait: Optional[int] = Wait.SHORT) -> None
+    """Set element text content."""
 ```
 
 #### Form Interaction
@@ -115,6 +146,12 @@ def get_input_by_label(self, label: str, wait: Optional[int] = Wait.SHORT) -> Op
 
 def type_by_label(self, label: str, text: str, wait: Optional[int] = Wait.SHORT) -> None
     """Type text in input found by label."""
+
+def check_element_by_label(self, label: str, wait: Optional[int] = Wait.SHORT) -> None
+    """Check checkbox by label."""
+
+def uncheck_element_by_label(self, label: str, wait: Optional[int] = Wait.SHORT) -> None
+    """Uncheck checkbox by label."""
 
 def select_option(self, selector: str, value: Optional[Union[str, List[str]]] = None, index: Optional[Union[int, List[int]]] = None, label: Optional[Union[str, List[str]]] = None, wait: Optional[int] = Wait.SHORT) -> None
     """Select option in dropdown."""
@@ -130,6 +167,12 @@ def upload_multiple_files(self, selector: str, file_paths: List[str], wait: Opti
 ```python
 def run_js(self, script: str, args: Optional[Any] = None) -> Any
     """Execute JavaScript and return result."""
+
+def get_js_variable(self, variable_name: str) -> Any
+    """Get JavaScript variable value."""
+
+def run_on_new_document(self, script: str) -> None
+    """Run JavaScript on new document load."""
 ```
 
 #### Waiting & Conditions
@@ -137,131 +180,159 @@ def run_js(self, script: str, args: Optional[Any] = None) -> Any
 def sleep(self, seconds: float) -> None
     """Wait for specified seconds."""
 
+def short_random_sleep(self) -> None
+    """Sleep for random short duration (0.2-0.7s)."""
+
+def long_random_sleep(self) -> None
+    """Sleep for random long duration (1.5-3s)."""
+
+def sleep_forever(self) -> None
+    """Sleep indefinitely."""
+
 def wait_for_page_to_be(self, expected_url: Union[str, List[str]], wait: Optional[int] = 8, raise_exception: bool = True) -> bool
     """Wait for page URL to match expected."""
 
 def prompt(self, text: str = "Press Enter to continue...") -> None
     """Show prompt and wait for user input."""
+
+def is_in_page(self, target: str, wait: Optional[int] = None, raise_error: bool = False) -> bool
+    """Check if text/URL is in page."""
 ```
 
-#### Screenshots & Recording
+#### Screenshots
 ```python
 def save_screenshot(self, filename: Optional[str] = None) -> str
     """Save screenshot to file."""
 
-def full_screenshot(self, filename: Optional[str] = None) -> str
-    """Take full page screenshot."""
-
-def start_recording(self, filename: Optional[str] = None) -> None
-    """Start recording browser session."""
-
-def save_recording(self, filename: Optional[str] = None) -> str
-    """Save and stop recording."""
+def save_element_screenshot(self, selector: str, filename: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> str
+    """Save element screenshot."""
 ```
 
 #### Tabs & Windows
 ```python
-def get_tabs(self) -> List['BrowserTab']
-    """Get all open tabs."""
-
-def close_current_tab(self) -> None
-    """Close current tab."""
-
-def close_tab(self, tab: 'BrowserTab') -> None
-    """Close specific tab."""
-
 def switch_to_tab(self, tab: 'BrowserTab') -> 'BrowserTab'
     """Switch to specific tab."""
 
-def open_tab(self, url: str, wait: Optional[int] = None) -> 'BrowserTab'
-    """Open new tab with URL."""
+def open_in_devtools(self) -> None
+    """Open browser developer tools."""
 ```
 
-#### Links & Images
-```python
-def get_links(self, search: Optional[str] = None) -> List[Link]
-    """Get all links on page."""
-
-def get_images(self) -> List[str]
-    """Get all image URLs."""
-
-def links(self, search: Optional[str] = None) -> List[Link]
-    """Alias for get_links()."""
-```
-
-#### Page Manipulation
+#### Cookies & Storage
 ```python
 def delete_cookies(self) -> None
     """Clear all cookies."""
 
-def clear_localstorage(self) -> None
+def delete_local_storage(self) -> None
     """Clear local storage."""
+
+def delete_cookies_and_local_storage(self) -> None
+    """Clear cookies and local storage."""
 
 def get_cookies(self) -> List[dict]
     """Get all cookies."""
 
-def get_cookie(self, name: str) -> Optional[dict]
-    """Get cookie by name."""
+def get_cookies_dict(self) -> dict
+    """Get cookies as dictionary."""
 
-def set_cookie(self, cookie: dict) -> None
-    """Set cookie."""
+def get_local_storage(self) -> dict
+    """Get local storage data."""
 
-def delete_cookie(self, name: str) -> None
-    """Delete cookie by name."""
+def get_cookies_and_local_storage(self) -> dict
+    """Get cookies and local storage combined."""
 
-def add_cookie(self, cookie: dict) -> None
-    """Add cookie."""
+def add_cookies(self, cookies: List[dict]) -> None
+    """Add multiple cookies."""
 
-def set_cookies(self, cookies: List[dict]) -> None
-    """Set multiple cookies."""
-```
+def add_local_storage(self, items: dict) -> None
+    """Add local storage items."""
 
-#### Local Storage
-```python
+def add_cookies_and_local_storage(self, data: dict) -> None
+    """Add cookies and local storage from combined data."""
+
 @property
 def local_storage(self) -> LocalStorage
     """Access local storage object."""
 ```
 
-#### Advanced Features
+#### Bot Detection & Cloudflare
 ```python
-def get_bot_detected(self) -> bool
+def is_bot_detected(self) -> bool
     """Check if bot detection triggered."""
 
-def is_bot_detected(self) -> bool
-    """Alias for get_bot_detected()."""
+def get_bot_detected_by(self) -> str
+    """Get bot detection source."""
 
-def is_in_page(self, target: str, wait: Optional[int] = None, raise_error: bool = False) -> bool
-    """Check if text/URL is in page."""
+def is_bot_detected_by_cloudflare(self) -> bool
+    """Check if detected by Cloudflare."""
 
-def is_page_fully_loaded(self) -> bool
-    """Check if page fully loaded."""
+def detect_and_bypass_cloudflare(self) -> None
+    """Detect and bypass Cloudflare protection."""
 
-def solve_captcha(self) -> None
-    """Attempt to solve captcha."""
+def prompt_to_solve_captcha(self) -> None
+    """Prompt user to solve captcha."""
+```
 
+#### Human Mode
+```python
+def enable_human_mode(self) -> None
+    """Enable human-like behavior mode."""
+
+def disable_human_mode(self) -> None
+    """Disable human-like behavior mode."""
+```
+
+#### Network Control
+```python
 def block_images(self) -> None
     """Block image loading."""
 
 def block_images_and_css(self) -> None
     """Block images and CSS."""
 
-def calculate_loading_time(self) -> float
-    """Get page loading time."""
+def block_urls(self, urls: List[str]) -> None
+    """Block specific URLs."""
 
-<<<<<<< Updated upstream
-def detect_and_bypass_cloudflare(self) -> None
-    """Detect and bypass Cloudflare protection."""
+def before_request_sent(self, callback: Callable) -> None
+    """Set callback for before request is sent."""
 
-def enable_human_mode(self) -> None
-    """Enable human-like behavior mode."""
+def after_response_received(self, callback: Callable) -> None
+    """Set callback for after response is received."""
 
-def disable_human_mode(self) -> None
-    """Disable human-like behavior mode."""
-=======
-def run_cdp_command(self, command: str) -> Any
-    """Execute a Chrome DevTools Protocol command directly."""
->>>>>>> Stashed changes
+def collect_response(self, url_contains: str, response_type: str = None) -> Optional[dict]
+    """Collect response matching criteria."""
+
+def collect_responses(self, url_contains: str, response_type: str = None) -> List[dict]
+    """Collect all responses matching criteria."""
+```
+
+#### Downloads
+```python
+def download_file(self, url: str, filename: Optional[str] = None) -> None
+    """Download file from URL."""
+
+def download_element_video(self, selector: str, filename: Optional[str] = None, wait_for_download: bool = True, duration: Optional[float] = None) -> str
+    """Download video from element."""
+
+def is_element_video_downloaded(self, selector: str) -> bool
+    """Check if element video is downloaded."""
+```
+
+#### Advanced Features
+```python
+def run_cdp_command(self, command: str, params: dict = None) -> Any
+    """Execute Chrome DevTools Protocol command."""
+
+def grant_all_permissions(self) -> None
+    """Grant all browser permissions."""
+
+def allow_insecure_connections(self) -> None
+    """Allow insecure HTTPS connections."""
+
+def dom_enable(self) -> None
+    """Enable DOM domain."""
+
+def dom_disable(self) -> None
+    """Disable DOM domain."""
 ```
 
 #### Scrolling
@@ -269,47 +340,58 @@ def run_cdp_command(self, command: str) -> Any
 def scroll_to_bottom(self) -> None
     """Scroll to page bottom."""
 
-def scroll_to_top(self) -> None
-    """Scroll to page top."""
+def scroll_into_view(self, selector: str, wait: Optional[int] = Wait.SHORT) -> None
+    """Scroll element into view."""
 
-def scroll_by(self, x: int, y: int) -> None
-    """Scroll by pixels."""
-
-def short_random_sleep(self) -> None
-    """Sleep for random short duration."""
-
-def long_random_sleep(self) -> None
-    """Sleep for random long duration."""
-
-def sleep_forever(self) -> None
-    """Sleep indefinitely."""
+def can_scroll_further(self) -> bool
+    """Check if page can scroll further."""
 ```
 
-#### Debugging & Info
+#### Element Information
 ```python
-def get_driver_version(self) -> str
-    """Get Chrome driver version."""
+def get_text(self, selector: str, wait: Optional[int] = Wait.SHORT) -> Optional[str]
+    """Get element text."""
 
-def get_browser_version(self) -> str
-    """Get Chrome browser version."""
+def get_attribute(self, selector: str, attribute: str, wait: Optional[int] = Wait.SHORT) -> Optional[str]
+    """Get element attribute."""
+
+def get_all_attributes(self, selector: str, wait: Optional[int] = Wait.SHORT) -> Optional[dict]
+    """Get all element attributes."""
+
+def remove(self, selector: str, wait: Optional[int] = Wait.SHORT) -> None
+    """Remove element from DOM."""
 ```
 
-#### Network Interception
+#### Mouse Operations
 ```python
-def before_request_sent(self, callback: Callable) -> None
-    """Set callback for before request is sent."""
+def click_at_point(self, x: int, y: int, skip_move: bool = False) -> None
+    """Click at specific coordinates."""
 
-def after_response_received(self, callback: Callable) -> None
-    """Set callback for after response is received."""
-```
+def move_mouse_to_point(self, x: int, y: int, is_jump: bool = False) -> None
+    """Move mouse to coordinates."""
 
-#### Downloads
-```python
-def download_file(self, url: str, filename: Optional[str] = None) -> None
-    """Download file from URL."""
+def move_mouse_to_element(self, selector: str, wait: Optional[int] = Wait.SHORT, is_jump: bool = False) -> None
+    """Move mouse to element."""
+
+def mouse_press(self, x: int, y: int) -> None
+    """Press mouse button at coordinates."""
+
+def mouse_release(self, x: int, y: int) -> None
+    """Release mouse button at coordinates."""
+
+def mouse_press_and_hold(self, x: int, y: int, release_condition: Callable, check_interval: float = 0.1) -> None
+    """Hold mouse button until condition met."""
+
+def drag_and_drop(self, from_selector: str, to_selector: str, wait: Optional[int] = Wait.SHORT) -> None
+    """Drag from one element to another."""
+
+def get_element_at_point(self, x: int, y: int, wait: Optional[int] = Wait.SHORT) -> Optional[Element]
+    """Get element at coordinates."""
 ```
 
 ### Element Class
+
+The Element class (wrapper in driver.py) represents a DOM element with rich interaction capabilities.
 
 #### Properties
 ```python
@@ -367,12 +449,15 @@ def wait_for_element(self, selector: str, wait: Optional[int] = Wait.SHORT) -> '
 
 def is_element_present(self, selector: str, wait: Optional[int] = Wait.SHORT) -> bool
     """Check if child element present."""
+
+def select_iframe(self, selector: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> 'Element'
+    """Select iframe element."""
 ```
 
 #### Interaction Methods
 ```python
 def click(self, selector: Optional[str] = None, wait: Optional[int] = Wait.SHORT, skip_move: bool = False) -> None
-    """Click element."""
+    """Click element or child."""
 
 def type(self, text: str, selector: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> None
     """Type text into element."""
@@ -429,13 +514,25 @@ def move_mouse_here(self, is_jump: bool = False) -> None
     """Move mouse to element."""
 
 def move_mouse_to_point(self, x: int, y: int, is_jump: bool = False) -> None
-    """Move mouse to point."""
+    """Move mouse to point relative to element."""
+
+def move_mouse_to_element(self, selector: str, wait: Optional[int] = Wait.SHORT, is_jump: bool = False) -> None
+    """Move mouse to child element."""
 
 def click_at_point(self, x: int, y: int, skip_move: bool = False) -> None
-    """Click at specific point."""
+    """Click at specific point relative to element."""
 
-def drag_and_drop_to(self, to_point: Union[tuple[int, int], 'Element']) -> None
+def drag_and_drop_to(self, to_point: Union[Tuple[int, int], 'Element']) -> None
     """Drag element to destination."""
+
+def mouse_press(self, x: Optional[int] = None, y: Optional[int] = None) -> None
+    """Press mouse button."""
+
+def mouse_release(self, x: Optional[int] = None, y: Optional[int] = None) -> None
+    """Release mouse button."""
+
+def mouse_press_and_hold(self, x: int, y: int, release_condition: Callable, check_interval: float = 0.1) -> None
+    """Hold mouse button until condition met."""
 ```
 
 #### Screenshot
@@ -452,7 +549,7 @@ def check_element(self, selector: Optional[str] = None, wait: Optional[int] = Wa
 def uncheck_element(self, selector: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> None
     """Uncheck checkbox."""
 
-def select_option(self, value: Optional[Union[str, List[str]]] = None, index: Optional[Union[int, List[int]]] = None, label: Optional[Union[str, List[str]]] = None, wait: Optional[int] = Wait.SHORT) -> None
+def select_option(self, selector: Optional[str] = None, value: Optional[Union[str, List[str]]] = None, index: Optional[Union[int, List[int]]] = None, label: Optional[Union[str, List[str]]] = None, wait: Optional[int] = Wait.SHORT) -> None
     """Select dropdown option."""
 ```
 
@@ -465,43 +562,49 @@ def upload_multiple_files(self, file_paths: List[str]) -> None
     """Upload multiple files."""
 ```
 
-#### Iframe & Shadow DOM
+#### Shadow DOM
 ```python
-def select_iframe(self) -> 'IframeElement'
-    """Select iframe element."""
-
-def get_shadow_root(self, wait: Optional[int] = Wait.SHORT) -> 'ShadowRoot'
-    """Get shadow root."""
+def get_shadow_root(self, wait: Optional[int] = Wait.SHORT) -> 'Element'
+    """Get shadow root element."""
 ```
 
 #### Link & Image Methods
 ```python
-def get_link(self, search: Optional[str] = None) -> Optional[Link]
-    """Get first link matching search."""
+def get_link(self, selector: Optional[str] = None, url_contains_text: Optional[str] = None, element_contains_text: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> Optional[Link]
+    """Get first link matching criteria."""
 
-def get_all_links(self, search: Optional[str] = None) -> List[Link]
-    """Get all links matching search."""
+def get_all_links(self, selector: Optional[str] = None, url_contains_text: Optional[str] = None, element_contains_text: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> List[Link]
+    """Get all links matching criteria."""
 
-def get_image_link(self, search: Optional[str] = None) -> Optional[str]
-    """Get first image link matching search."""
+def get_image_link(self, selector: Optional[str] = None, url_contains_text: Optional[str] = None, element_contains_text: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> Optional[str]
+    """Get first image link matching criteria."""
 
-def get_all_image_links(self, search: Optional[str] = None) -> List[str]
-    """Get all image links matching search."""
+def get_all_image_links(self, selector: Optional[str] = None, url_contains_text: Optional[str] = None, element_contains_text: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> List[str]
+    """Get all image links matching criteria."""
 ```
 
-#### Text Search Methods (Element class)
+#### Parent Navigation
 ```python
-def get_element_with_exact_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> Optional['Element']
-    """Get child element with exact text."""
+def get_parent_which_satisfies(self, predicate: Callable[['Element'], bool]) -> Optional['Element']
+    """Find parent matching condition."""
 
-def get_element_containing_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> Optional['Element']
-    """Get child element containing text."""
+def get_parent_which_is(self, tag_name: str) -> Optional['Element']
+    """Find parent with specific tag."""
+```
 
-def get_all_elements_with_exact_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> List['Element']
-    """Get all child elements with exact text."""
+#### Element Location
+```python
+def get_element_at_point(self, x: int, y: int, child_selector: Optional[str] = None, wait: Optional[int] = Wait.SHORT) -> Optional['Element']
+    """Get element at coordinates relative to this element."""
+```
 
-def get_all_elements_containing_text(self, text: str, wait: Optional[int] = Wait.SHORT, type=None) -> List['Element']
-    """Get all child elements containing text."""
+#### Video Operations
+```python
+def download_video(self, filename: Optional[str] = None, wait_for_download_completion: bool = True, duration: Optional[float] = None) -> str
+    """Download video from element."""
+
+def is_video_downloaded(self) -> bool
+    """Check if video downloaded."""
 ```
 
 ## Constants
@@ -599,4 +702,5 @@ class JavascriptRuntimeException(JavascriptException):
 4. All Driver methods should be called on a Driver instance
 5. The Driver class manages its own Chrome subprocess via CDP (Chrome DevTools Protocol)
 6. Methods not prefixed with `_` are considered public API
-7. Some methods have different signatures between Driver and Element classes (e.g., `type()` parameter order)
+7. The Element class wrapper provides a high-level API over the CoreElement implementation
+8. Some methods support batch operations (e.g., selecting multiple options, uploading multiple files)
