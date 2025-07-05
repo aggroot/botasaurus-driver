@@ -2,10 +2,24 @@
 
 This document provides a comprehensive index of the public API exposed by the Botasaurus Driver library. This serves as a reference for implementing the Botasaurus adapter in Bitapify.
 
-**Last Updated**: Based on actual implementation analysis
+**Last Updated**: January 2025 - Added `use_current_tab` parameter and `create_new_tab` method
 **Note**: This index reflects the actual implementation with two Element classes:
 - CoreElement (in core/element.py) - Low-level implementation
 - Element wrapper (in driver.py) - High-level API used by consumers
+
+## Recent Changes
+
+### January 2025 Updates
+- **New Method**: `create_new_tab()` - Creates a new tab and navigates to URL without switching the driver's current tab
+  - Preserves driver's current tab context for safe concurrent operations
+  - Returns the newly created Tab instance for direct manipulation
+  - Supports Cloudflare bypass, custom JavaScript injection, and wait options
+- **Modified Methods**: Added `use_current_tab` parameter to navigation methods:
+  - `get()` - Now supports `use_current_tab` parameter to control tab creation behavior
+  - `google_get()` - Now supports `use_current_tab` parameter 
+  - `get_via()` - Now supports `use_current_tab` parameter
+- **New Internal Method**: `get_with_tab()` in Browser class - Navigates within existing tab
+- **Bug Fix**: These changes address race conditions that occurred when creating virtual browser adapters concurrently
 
 ## Table of Contents
 - [Core Classes](#core-classes)
@@ -32,14 +46,43 @@ def close(self) -> None
 
 #### Navigation
 ```python
-def get(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, timeout=60) -> Tab
-    """Navigate to URL and optionally wait for page load."""
+def get(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, timeout=60, use_current_tab=True) -> Tab
+    """Navigate to URL and optionally wait for page load.
+    
+    Args:
+        link: URL to navigate to
+        bypass_cloudflare: Whether to detect and bypass Cloudflare
+        js_to_run_before_new_document: JavaScript to run before page load
+        wait: Seconds to wait after navigation
+        timeout: Timeout for page load
+        use_current_tab: If True, navigates in current tab; if False, creates new tab
+    """
 
-def google_get(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, accept_google_cookies: bool = False, timeout=60) -> Tab
-    """Navigate to URL via Google (for Cloudflare bypass)."""
+def google_get(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, accept_google_cookies: bool = False, timeout=60, use_current_tab=True) -> Tab
+    """Navigate to URL via Google (for Cloudflare bypass).
+    
+    Args:
+        link: URL to navigate to
+        bypass_cloudflare: Whether to detect and bypass Cloudflare
+        js_to_run_before_new_document: JavaScript to run before page load
+        wait: Seconds to wait after navigation
+        accept_google_cookies: Whether to accept Google cookie consent
+        timeout: Timeout for page load
+        use_current_tab: If True, navigates in current tab; if False, creates new tab
+    """
 
-def get_via(self, link: str, referer: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, timeout=60) -> Tab
-    """Navigate to URL with custom referer."""
+def get_via(self, link: str, referer: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, timeout=60, use_current_tab=True) -> Tab
+    """Navigate to URL with custom referer.
+    
+    Args:
+        link: URL to navigate to
+        referer: Referer URL to use
+        bypass_cloudflare: Whether to detect and bypass Cloudflare
+        js_to_run_before_new_document: JavaScript to run before page load
+        wait: Seconds to wait after navigation
+        timeout: Timeout for page load
+        use_current_tab: If True, navigates in current tab; if False, creates new tab
+    """
 
 def get_via_this_page(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, timeout=60) -> Tab
     """Navigate to URL from current page context."""
@@ -47,8 +90,40 @@ def get_via_this_page(self, link: str, bypass_cloudflare=False, js_to_run_before
 def reload(self, js_to_run_before_new_document=None) -> Tab
     """Reload the current page."""
 
-def open_link_in_new_tab(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, timeout=60) -> Tab
-    """Open URL in a new tab."""
+def open_link_in_new_tab(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, new_window=True, timeout=60) -> Tab
+    """Open URL in a new tab.
+    
+    Args:
+        link: URL to open
+        bypass_cloudflare: Whether to detect and bypass Cloudflare
+        js_to_run_before_new_document: JavaScript to run before page load
+        wait: Seconds to wait after navigation
+        new_window: Whether to open in new window vs new tab
+        timeout: Timeout for page load
+    """
+
+def create_new_tab(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, new_window=True, timeout=60) -> Tab
+    """Create a new tab and navigate to URL without switching driver's current tab.
+    
+    This method creates a new tab and navigates to the specified URL while preserving
+    the driver's current tab context. This is particularly useful for concurrent operations
+    where you need to create new tabs without affecting the driver's state.
+    
+    Args:
+        link: URL to navigate to in new tab
+        bypass_cloudflare: Whether to detect and bypass Cloudflare
+        js_to_run_before_new_document: JavaScript to run before page load
+        wait: Seconds to wait after navigation
+        new_window: Whether to open in new window vs new tab
+        timeout: Timeout for page load (0 means no wait for page load)
+    
+    Returns:
+        Tab: The newly created tab instance
+    
+    Note:
+        Unlike open_link_in_new_tab, this method preserves the driver's current tab,
+        making it safe for concurrent operations.
+    """
 ```
 
 #### Page Properties
