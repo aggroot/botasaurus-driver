@@ -2193,7 +2193,7 @@ class Driver(BrowserTab):
     def create_new_tab(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, new_window=True, timeout=60) -> Tab:
             self.run_on_new_document(js_to_run_before_new_document)
             old_tab = self._tab
-            self._tab = self._browser.get(link, new_tab=True)
+            self._tab = self._browser.get(link, new_tab=True, new_window=new_window)
             self.sleep(wait)
             wait_till_document_is_ready(self._tab, self.config.wait_for_complete_page_load, timeout=timeout)
             if bypass_cloudflare:
