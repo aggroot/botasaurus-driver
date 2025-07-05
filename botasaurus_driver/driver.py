@@ -2190,6 +2190,17 @@ class Driver(BrowserTab):
                 self.detect_and_bypass_cloudflare()
             return self._tab
     
+    def create_new_tab(self, link: str, bypass_cloudflare=False, js_to_run_before_new_document: str = None, wait: Optional[int] = None, new_window=True, timeout=60) -> Tab:
+            self.run_on_new_document(js_to_run_before_new_document)
+            old_tab = self._tab
+            self._tab = self._browser.get(link, new_tab=True)
+            self.sleep(wait)
+            wait_till_document_is_ready(self._tab, self.config.wait_for_complete_page_load, timeout=timeout)
+            if bypass_cloudflare:
+                self.detect_and_bypass_cloudflare()
+            tab = self._tab
+            self._tab = old_tab
+            return tab
 
     def get_via(
             self,
