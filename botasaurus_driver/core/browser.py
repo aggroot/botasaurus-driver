@@ -52,7 +52,7 @@ def ensure_chrome_is_alive(url):
                 if response.status == 200:
                     data = response.read().decode('utf-8')
                     return json.loads(data)
-        except (URLError, HTTPError) as e:
+        except (URLError, HTTPError, ConnectionError) as e:
             time.sleep(retry_delay)  # Wait before retrying
             continue
 
