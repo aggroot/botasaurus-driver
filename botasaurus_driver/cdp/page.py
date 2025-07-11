@@ -2424,6 +2424,7 @@ def enable() -> typing.Generator[T_JSON_DICT, T_JSON_DICT, None]:
     """
     cmd_dict: T_JSON_DICT = {
         "method": "Page.enable",
+        "params": {}
     }
     json = yield cmd_dict
 
@@ -3826,6 +3827,34 @@ class FrameScheduledNavigation:
             delay=float(json["delay"]),
             reason=ClientNavigationReason.from_json(json["reason"]),
             url=str(json["url"]),
+        )
+
+
+@event_class("Page.frameStartedNavigating")
+@dataclass
+class FrameStartedNavigating:
+    """
+    **EXPERIMENTAL**
+
+    Fired when frame starts navigating to a new URL.
+    """
+
+    #: Id of the frame that has started navigating.
+    frame_id: FrameId
+    #: URL that the frame is navigating to.
+    url: str
+    #: Loader identifier.
+    loader_id: network.LoaderId
+    #: Navigation type.
+    navigation_type: str
+
+    @classmethod
+    def from_json(cls, json: T_JSON_DICT) -> FrameStartedNavigating:
+        return cls(
+            frame_id=FrameId.from_json(json["frameId"]),
+            url=json["url"],
+            loader_id=network.LoaderId.from_json(json["loaderId"]),
+            navigation_type=json["navigationType"]
         )
 
 
