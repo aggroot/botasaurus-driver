@@ -106,7 +106,7 @@ class Browser:
         *,
         profile_directory: PathLike = None,
         headless: bool = False,
-        browser_executable_path: PathLike = None,
+        chrome_executable_path: PathLike = None,
         browser_args: List[str] = None,
         sandbox: bool = True,
         **kwargs,
@@ -118,7 +118,7 @@ class Browser:
             config = Config(
                 profile_directory=profile_directory,
                 headless=headless,
-                browser_executable_path=browser_executable_path,
+                chrome_executable_path=chrome_executable_path,
                 browser_args=browser_args or [],
                 sandbox=sandbox,
                 **kwargs,
@@ -227,7 +227,7 @@ class Browser:
 
             current_tab = next(
                 filter(
-                    lambda item: item.target_id == target_info.target_id, self.targets
+                    lambda item: item.target.target_id == target_info.target_id, self.targets
                 )
             )
             # todo: maybe connections need to be reinited?
@@ -247,7 +247,7 @@ class Browser:
 
         elif isinstance(event, cdp.target.TargetDestroyed):
             current_tab = next(
-                filter(lambda item: item.target_id == event.target_id, self.targets)
+                filter(lambda item: item.target.target_id == event.target_id, self.targets)
             )
             current_tab.close_connections()
             self.targets.remove(current_tab)
@@ -333,7 +333,7 @@ class Browser:
 
         self.config.host = self.config.host or "127.0.0.1"
         self.config.port = self.config.port or free_port()
-        exe = self.config.browser_executable_path
+        exe = self.config.chrome_executable_path
         params = self.config()
 
         self.create_chrome_with_retries(exe, params)
@@ -433,7 +433,6 @@ class Browser:
         return info
 
     def update_targets(self):
-        targets: List[cdp.target.TargetInfo]
         targets = self._get_targets()
         for t in targets:
             for existing_tab in self.targets:
