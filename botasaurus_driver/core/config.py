@@ -266,9 +266,6 @@ class Config:
     @property
     def browser_args(self):
         return sorted(self.default_arguments + self.arguments)
-     @property
-    def skip_browser_launch(self):
-        return self.skip_browser_launch
 
     def close(self):
         if self.local_proxy:
