@@ -173,8 +173,9 @@ class Config:
         window_size=None,
         lang=None,
         beep=False,
-        host="127.0.0.1", 
+        host="127.0.0.1",
         port=None,
+        skip_browser_launch=False,
         force_no_sandbox=None,
     ):
         if tiny_profile and profile is None:
@@ -216,6 +217,7 @@ class Config:
         # Customizable host and port
         self.host = host
         self.port = port if port is not None else free_port()  # Use provided port or allocate a free one
+        self.skip_browser_launch = skip_browser_launch
 
         if self.tiny_profile or not self.profile:
             self.profile_directory = temp_profile_dir(str(self.port) + "_")
@@ -264,6 +266,9 @@ class Config:
     @property
     def browser_args(self):
         return sorted(self.default_arguments + self.arguments)
+     @property
+    def skip_browser_launch(self):
+        return self.skip_browser_launch
 
     def close(self):
         if self.local_proxy:
