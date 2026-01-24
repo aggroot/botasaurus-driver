@@ -2082,6 +2082,9 @@ class Driver(BrowserTab):
         port=None,
         force_no_sandbox=None,
     ):
+        # Auto-detect remote browser: if host is explicitly provided, skip launch
+        skip_launch = host is not None
+
         self.config = Config(
             headless=headless,
             enable_xvfb_virtual_display=enable_xvfb_virtual_display,
@@ -2101,6 +2104,7 @@ class Driver(BrowserTab):
             beep=beep,
             host=host,
             port=port,
+            skip_browser_launch=skip_launch,
             force_no_sandbox=force_no_sandbox,
         )
 

@@ -333,10 +333,23 @@ class Browser:
 
         self.config.host = self.config.host or "127.0.0.1"
         self.config.port = self.config.port or free_port()
-        exe = self.config.chrome_executable_path
-        params = self.config()
 
-        self.create_chrome_with_retries(exe, params)
+        # Check if we should skip browser launch (remote browser mode)
+        if not self.config.skip_browser_launch:
+            # Normal mode: Launch Chrome subprocess
+            exe = self.config.chrome_executable_path
+            params = self.config()
+            self.create_chrome_with_retries(exe, params)
+            self._process_pid = self._process.pid
+            self.base_folder_name = get_folder_name_from_path(self.config.profile_directory)
+        else:
+            # Remote mode: Connect to existing browser
+            self._process = None  # No local subprocess
+            self._process_pid = None
+            # Verify remote browser is accessible
+            self.info = ensure_chrome_is_alive(
+                f"http://{self.config.host}:{self.config.port}/json/version"
+            )
 
         self.connection = Connection(self.info["webSocketDebuggerUrl"], _owner=self)
 
@@ -353,18 +366,16 @@ class Browser:
             self._handle_target_update
         ]
 
-        self._process_pid = self._process.pid
-        self.base_folder_name = get_folder_name_from_path(self.config.profile_directory)
+        # Register instance and cleanup old profiles (only for local mode)
+        if not self.config.skip_browser_launch:
+            instances = util.get_registered_instances()
+            instances.add(self)
 
-        # await self
-        instances = util.get_registered_instances()
-        instances.add(self)
+            # CLEAN UO
+            fls = get_target_folders(instances)
 
-        # CLEAN UO
-        fls = get_target_folders(instances)
-
-        if fls:
-            run_check_and_delete_in_thread(fls)
+            if fls:
+                run_check_and_delete_in_thread(fls)
 
         self.connection.send(cdp.target.set_discover_targets(discover=True), wait_for_response=False)
         # self.connection.wait_to_be_idle()
