@@ -158,7 +158,7 @@ class Config:
     def __init__(
         self,
         headless=False,
-        enable_xvfb_virtual_display=False,
+        enable_xvfb_virtual_display=None,  # None=auto, True=force, False=disable
         proxy=None,
         profile=None,
         tiny_profile=False,
@@ -181,7 +181,7 @@ class Config:
         if tiny_profile and profile is None:
             raise ValueError("Profile must be given when using tiny profile")
 
-        if enable_xvfb_virtual_display and headless:
+        if enable_xvfb_virtual_display is True and headless:
             raise ValueError("Xvfb Virtual Display cannot be used while headless mode is enabled")
 
         self.headless = headless
@@ -284,7 +284,9 @@ class Config:
         if self.headless:
             args.append("--headless=new")
         else:
-            if is_vmish or self.enable_xvfb_virtual_display:  # Modified condition
+            # Start Xvfb if explicitly enabled (True) or auto-enabled in VM (None + is_vmish)
+            # Explicitly disabled (False) will prevent Xvfb even in VMs
+            if self.enable_xvfb_virtual_display is True or (is_vmish and self.enable_xvfb_virtual_display is None):
                 from pyvirtualdisplay import Display
 
                 try:

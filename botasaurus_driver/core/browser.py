@@ -383,13 +383,37 @@ class Browser:
     def create_chrome_with_retries(self, exe, params):
         @retry_if_is_error()
         def run():
+            import threading
+            import logging
+            logger = logging.getLogger("botasaurus.browser")
+
+            def log_subprocess_output(pipe, log_func):
+                """Read subprocess output and log it."""
+                try:
+                    for line in iter(pipe.readline, b''):
+                        if line:
+                            log_func(line.decode('utf-8', errors='replace').rstrip())
+                except Exception:
+                    pass
+                finally:
+                    pipe.close()
+
             process = subprocess.Popen(
                 [exe, *params],
                 stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,  # Capture stdout for debugging
+                stderr=subprocess.STDOUT,  # Redirect stderr to stdout
                 close_fds=is_posix,
             )
+
+            # Start background thread to log subprocess output
+            log_thread = threading.Thread(
+                target=log_subprocess_output,
+                args=(process.stdout, logger.info),
+                daemon=True
+            )
+            log_thread.start()
+
             chrome_url = f"http://{self.config.host}:{self.config.port}/json/version"
             # time.sleep(0.5)
             try:
