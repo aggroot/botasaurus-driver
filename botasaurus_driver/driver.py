@@ -2081,6 +2081,7 @@ class Driver(BrowserTab):
         host=None,
         port=None,
         force_no_sandbox=None,
+        cdp_base_path="",
     ):
         # Auto-detect remote browser: if host is explicitly provided, skip launch
         skip_launch = host is not None
@@ -2106,6 +2107,7 @@ class Driver(BrowserTab):
             port=port,
             skip_browser_launch=skip_launch,
             force_no_sandbox=force_no_sandbox,
+            cdp_base_path=cdp_base_path,
         )
 
         self._tab_value: Tab = None

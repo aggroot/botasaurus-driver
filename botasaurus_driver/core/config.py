@@ -177,6 +177,7 @@ class Config:
         port=None,
         skip_browser_launch=False,
         force_no_sandbox=None,
+        cdp_base_path="",
     ):
         if tiny_profile and profile is None:
             raise ValueError("Profile must be given when using tiny profile")
@@ -218,6 +219,7 @@ class Config:
         self.host = host
         self.port = port if port is not None else free_port()  # Use provided port or allocate a free one
         self.skip_browser_launch = skip_browser_launch
+        self.cdp_base_path = cdp_base_path
 
         if self.tiny_profile or not self.profile:
             self.profile_directory = temp_profile_dir(str(self.port) + "_")

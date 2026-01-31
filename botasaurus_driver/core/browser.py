@@ -259,9 +259,11 @@ class Browser:
         else:
             page_type = target_info.type_ or 'page'
 
+        # Include cdp_base_path for tunneled/proxied connections
+        base_path = self.config.cdp_base_path if hasattr(self.config, 'cdp_base_path') else ""
         return Tab(
                 (
-                    f"ws://{self.config.host}:{self.config.port}"
+                    f"ws://{self.config.host}:{self.config.port}{base_path}"
                     f"/devtools/{page_type}"  # all types are 'page' internally in chrome apparently
                     f"/{target_info.target_id}"
                 ),
@@ -347,9 +349,26 @@ class Browser:
             self._process = None  # No local subprocess
             self._process_pid = None
             # Verify remote browser is accessible
+            base_path = self.config.cdp_base_path if hasattr(self.config, 'cdp_base_path') else ""
             self.info = ensure_chrome_is_alive(
-                f"http://{self.config.host}:{self.config.port}/json/version"
+                f"http://{self.config.host}:{self.config.port}{base_path}/json/version"
             )
+
+            # Fix WebSocket URL for tunneled/proxied connections
+            # When connecting through a proxy/router, the webSocketDebuggerUrl from the browser
+            # may be a local URL (ws://127.0.0.1:9223/...) or malformed (ws:///...).
+            # Reconstruct it using the known remote host:port and base path.
+            if base_path and "webSocketDebuggerUrl" in self.info:
+                import re
+                ws_url = self.info["webSocketDebuggerUrl"]
+                # Extract just the path portion (e.g., /devtools/browser/xxx)
+                # Handle both ws://host:port/path and ws:///path formats
+                match = re.search(r'ws://[^/]*(/.+)$', ws_url) or re.search(r'ws://(/.+)$', ws_url)
+                if match:
+                    ws_path = match.group(1)
+                    # Reconstruct with correct host:port and base path
+                    fixed_url = f"ws://{self.config.host}:{self.config.port}{base_path}{ws_path}"
+                    self.info["webSocketDebuggerUrl"] = fixed_url
 
         self.connection = Connection(self.info["webSocketDebuggerUrl"], _owner=self)
 
@@ -401,8 +420,8 @@ class Browser:
             process = subprocess.Popen(
                 [exe, *params],
                 stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,  # Capture stdout for debugging
-                stderr=subprocess.STDOUT,  # Redirect stderr to stdout
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 close_fds=is_posix,
             )
 
@@ -476,10 +495,12 @@ class Browser:
                     existing_tab.target.__dict__.update(t.__dict__)
                     break
             else:
+                # Include cdp_base_path for tunneled/proxied connections
+                base_path = self.config.cdp_base_path if hasattr(self.config, 'cdp_base_path') else ""
                 self.targets.append(
                     Connection(
                         (
-                            f"ws://{self.config.host}:{self.config.port}"
+                            f"ws://{self.config.host}:{self.config.port}{base_path}"
                             f"/devtools/page"  # all types are 'page' somehow
                             f"/{t.target_id}"
                         ),
