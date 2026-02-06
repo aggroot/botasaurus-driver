@@ -46,6 +46,7 @@ def start(
     browser_args: Optional[List[str]] = None,
     sandbox: Optional[bool] = True,
     lang: Optional[str] = None,
+    start_callback=None,
 ):
     """
     helper function to launch a browser. it accepts several keyword parameters.
@@ -71,10 +72,13 @@ def start(
 
     :param lang: language string
     :type lang: str
+
+    :param start_callback: optional callback to replace the default start behavior.
+                           if provided, it is called with the browser instance instead of instance.start().
     :return:
     """
     from .browser import Browser
-    return Browser.create(config)
+    return Browser.create(config, start=start_callback)
 
 
 def get_registered_instances():

@@ -2082,6 +2082,7 @@ class Driver(BrowserTab):
         port=None,
         force_no_sandbox=None,
         cdp_base_path="",
+        start_callback: Optional[Callable[["Browser"], None]] = None,
     ):
         # Auto-detect remote browser: if host is explicitly provided, skip launch
         skip_launch = host is not None
@@ -2111,7 +2112,7 @@ class Driver(BrowserTab):
         )
 
         self._tab_value: Tab = None
-        self._browser: Browser = start(self.config)
+        self._browser: Browser = start(self.config, start_callback=start_callback)
         self._dot_name = None
         self._cursor = None
         self._is_human_mode_enabled = False

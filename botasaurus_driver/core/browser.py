@@ -4,7 +4,7 @@ import json
 import subprocess
 import atexit
 import os
-from typing import List, Union
+from typing import Callable, List, Optional, Union
 
 import time
 import urllib.request
@@ -109,10 +109,14 @@ class Browser:
         chrome_executable_path: PathLike = None,
         browser_args: List[str] = None,
         sandbox: bool = True,
+        start: Optional[Callable[["Browser"], None]] = None,
         **kwargs,
     ) -> Browser:
         """
         entry point for creating an instance
+
+        :param start: optional callback to replace the default start behavior.
+                      if provided, it is called with the browser instance instead of instance.start().
         """
         if not config:
             config = Config(
@@ -123,8 +127,17 @@ class Browser:
                 sandbox=sandbox,
                 **kwargs,
             )
+
+        config.host = config.host or "127.0.0.1"
+        config.port = config.port or free_port()
+
         instance = cls(config)
-        instance.start()
+
+        if start is not None:
+            start(instance)
+        else:
+            instance.start()
+
         return instance
 
     def __init__(self, config: Config):
@@ -333,9 +346,6 @@ class Browser:
 
     def start(self=None) -> Browser:
 
-        self.config.host = self.config.host or "127.0.0.1"
-        self.config.port = self.config.port or free_port()
-
         # Check if we should skip browser launch (remote browser mode)
         if not self.config.skip_browser_launch:
             # Normal mode: Launch Chrome subprocess
@@ -399,6 +409,8 @@ class Browser:
         self.connection.send(cdp.target.set_discover_targets(discover=True), wait_for_response=False)
         # self.connection.wait_to_be_idle()
         self.update_targets()
+
+
     def create_chrome_with_retries(self, exe, params):
         @retry_if_is_error()
         def run():
