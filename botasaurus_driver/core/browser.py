@@ -160,6 +160,9 @@ class Browser:
         self._is_updating = False
         self.connection: Connection = None
 
+        base_path = config.cdp_base_path if hasattr(config, 'cdp_base_path') else ""
+        self.chrome_url = f"http://{config.host}:{config.port}{base_path}/json/version"
+
     @property
     def websocket_url(self):
         return self.info["webSocketDebuggerUrl"]
@@ -358,17 +361,17 @@ class Browser:
             # Remote mode: Connect to existing browser
             self._process = None  # No local subprocess
             self._process_pid = None
-            # Verify remote browser is accessible
-            base_path = self.config.cdp_base_path if hasattr(self.config, 'cdp_base_path') else ""
-            self.info = ensure_chrome_is_alive(
-                f"http://{self.config.host}:{self.config.port}{base_path}/json/version"
-            )
+            # Verify remote browser is accessible (skip if already verified,
+            # e.g. by an external launcher that set browser.info directly)
+            if not self.info:
+                self.info = ensure_chrome_is_alive(self.chrome_url)
 
             # Fix WebSocket URL for tunneled/proxied connections
             # When connecting through a proxy/router, the webSocketDebuggerUrl from the browser
             # may be a local URL (ws://127.0.0.1:9223/...) or malformed (ws:///...).
             # Reconstruct it using the known remote host:port and base path.
-            if base_path and "webSocketDebuggerUrl" in self.info:
+            cdp_base_path = self.config.cdp_base_path if hasattr(self.config, 'cdp_base_path') else ""
+            if cdp_base_path and "webSocketDebuggerUrl" in self.info:
                 import re
                 ws_url = self.info["webSocketDebuggerUrl"]
                 # Extract just the path portion (e.g., /devtools/browser/xxx)
@@ -377,7 +380,7 @@ class Browser:
                 if match:
                     ws_path = match.group(1)
                     # Reconstruct with correct host:port and base path
-                    fixed_url = f"ws://{self.config.host}:{self.config.port}{base_path}{ws_path}"
+                    fixed_url = f"ws://{self.config.host}:{self.config.port}{cdp_base_path}{ws_path}"
                     self.info["webSocketDebuggerUrl"] = fixed_url
 
         self.connection = Connection(self.info["webSocketDebuggerUrl"], _owner=self)
@@ -445,10 +448,9 @@ class Browser:
             )
             log_thread.start()
 
-            chrome_url = f"http://{self.config.host}:{self.config.port}/json/version"
             # time.sleep(0.5)
             try:
-                self.info = ensure_chrome_is_alive(chrome_url)
+                self.info = ensure_chrome_is_alive(self.chrome_url)
                 self._process = process
             except:
                 terminate_process(process)
