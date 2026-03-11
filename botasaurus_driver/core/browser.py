@@ -345,7 +345,14 @@ class Browser:
         return tab
 
     def get_first_tab(self):
-        return next(filter(lambda item: item._target.type_ == "page", self.targets))
+        # Retry briefly — without --no-first-run, Chrome may not have created
+        # a page target yet (first-run welcome flow delays tab creation).
+        for _ in range(20):
+            result = next(filter(lambda item: item._target.type_ == "page", self.targets), None)
+            if result is not None:
+                return result
+            time.sleep(0.25)
+        raise RuntimeError("No page target found after waiting 5 seconds")
 
     def start(self=None) -> Browser:
 
@@ -581,7 +588,7 @@ class Browser:
         self.close_chrome()
         self.close_browser_connection()
         if self._process:
-            if not wait_for_graceful_close(self._process):
+            if not self._wait_for_process_and_flush():
                 terminate_process(self._process)
         self._process = None
         self._process_pid = None
@@ -597,6 +604,47 @@ class Browser:
 
         if is_docker:
             util.close_zombie_processes()
+
+    def _wait_for_process_and_flush(self, timeout=10.0, poll_interval=0.2):
+        """Wait for process exit and profile flush (journals/WAL/locks).
+
+        Returns True if process exited and profile flushed within timeout.
+        """
+        import glob
+
+        deadline = time.time() + timeout
+        process_exited = False
+
+        while time.time() < deadline:
+            # Check process exit
+            if not process_exited and self._process.poll() is not None:
+                process_exited = True
+
+            # Once process is gone, check profile flush
+            if process_exited:
+                profile_dir = self.config.profile_directory
+                if not profile_dir:
+                    return True
+
+                not_ready = []
+                for pattern in ("**/*-journal", "**/*-wal", "**/*-shm"):
+                    for path in glob.glob(os.path.join(profile_dir, pattern), recursive=True):
+                        try:
+                            if os.path.getsize(path) > 0:
+                                not_ready.append(path)
+                        except OSError:
+                            pass
+                for name in ("SingletonLock", "SingletonSocket", "SingletonCookie"):
+                    lock_path = os.path.join(profile_dir, name)
+                    if os.path.exists(lock_path):
+                        not_ready.append(lock_path)
+
+                if not not_ready:
+                    return True
+
+            time.sleep(poll_interval)
+
+        return False
 
     def close_browser_connection(self):
         try:

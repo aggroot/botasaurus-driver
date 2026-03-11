@@ -249,7 +249,6 @@ class Config:
         self.default_arguments = [
             "--start-maximized",
             "--remote-allow-origins=*",
-            "--no-first-run",
             "--no-service-autorun",
             # Include `--no-default-browser-check` unless `remove_default_browser_check_argument` is True
             *([] if remove_default_browser_check_argument else ["--no-default-browser-check"]),
